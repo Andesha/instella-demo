@@ -18,7 +18,7 @@ cd instella-demo
 # Optional: choose storage with at least 100 GB free.
 export DATA_ROOT="$HOME/scratch/instella-demo"
 
-# Fetch AMD's training source and build its ROCm container as an Apptainer SIF.
+# Fetch AMD's source, build its ROCm Apptainer SIF, and download the model.
 bash scripts/bootstrap.sh
 
 # Normal scheduler operation—no reservation required.
@@ -28,7 +28,7 @@ bash scripts/submit.sh
 bash scripts/submit.sh --reservation TylerJobs
 ```
 
-`submit.sh` passes the repository and data paths to Slurm and submits preflight, download, inference, and training as an `afterok` dependency chain. Therefore the checkout can live anywhere; users do not need to edit the job files. Use `--data-root PATH` instead of exporting `DATA_ROOT` if preferred.
+`bootstrap.sh` performs all non-GPU setup on the login node, including a container import check. Downloads are resumable. `submit.sh` then passes the repository and data paths to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Therefore the checkout can live anywhere; users do not need to edit job files. Use `--data-root PATH` instead of exporting `DATA_ROOT` if preferred.
 
 Monitor the workflow with:
 
@@ -37,11 +37,11 @@ squeue -u "$USER"
 tail -f instella-*.out
 ```
 
-Successful evidence is four ROCm devices and a BF16 matmul in preflight, generated text during inference, and loss/checkpoint output during mock training.
+Successful evidence is generated text from a process that detected four ROCm devices, followed by loss and checkpoint output from mock training.
 
 ## Nibi and MI300A notes
 
-The jobs request `gpu:mi300a` from Nibi's `gpubase_bygpu_b1` partition. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. The inference and training jobs request all four GPUs and 450 GB; the checkpoint download requests one GPU.
+The jobs request `gpu:mi300a` from Nibi's `gpubase_bygpu_b1` partition. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. Both inference and training request all four GPUs and 450 GB.
 
 Nibi provides Apptainer. The bootstrap script converts AMD's documented `rocm/megatron-lm:v25.8_py310` image into a SIF, and jobs use `apptainer exec --rocm` to expose allocated AMD devices. Durable models and checkpoints are stored under `$DATA_ROOT`; do not place them in `$SLURM_TMPDIR`, which disappears after a job.
 

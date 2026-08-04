@@ -16,7 +16,7 @@ source "$PROJECT_ROOT/scripts/versions.env"
 module load apptainer/1.4.5
 image="$DATA_ROOT/containers/$CONTAINER_NAME"
 model_name=${MODEL_ID//\//--}
-[[ -d "$DATA_ROOT/models/$model_name" ]] || { echo "Run 10-download.sbatch first" >&2; exit 1; }
+[[ -d "$DATA_ROOT/models/$model_name" ]] || { echo "Model not found; run scripts/bootstrap.sh first" >&2; exit 1; }
 export HSA_XNACK=1
 
 apptainer exec --rocm \

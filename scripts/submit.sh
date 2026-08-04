@@ -46,8 +46,6 @@ submit() {
   printf '%s' "$job"
 }
 
-preflight=$(submit '' 00-preflight.sbatch); echo "preflight: $preflight"
-download=$(submit "$preflight" 10-download.sbatch); echo "download:  $download"
-inference=$(submit "$download" 20-inference.sbatch); echo "inference: $inference"
+inference=$(submit '' 20-inference.sbatch); echo "inference: $inference"
 training=$(submit "$inference" 30-mock-train.sbatch); echo "training:  $training"
 echo "Submitted successfully. Monitor with: squeue -u $USER"
