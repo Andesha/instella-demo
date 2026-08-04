@@ -37,7 +37,7 @@ squeue -u "$USER"
 tail -f instella-*.out
 ```
 
-Successful evidence is generated text from a process that detected four ROCm devices, followed by loss and checkpoint output from mock training.
+Successful evidence is generated text from a process that detected four ROCm devices, followed by loss and checkpoint output from mock training. Slurm writes scheduler output in the directory where `submit.sh` is invoked; the training application also writes its detailed log and checkpoints under `$DATA_ROOT/outputs`.
 
 ## Nibi and MI300A notes
 
@@ -63,7 +63,7 @@ Common issues:
 - [`scripts/infer.py`](scripts/infer.py) — minimal Transformers smoke test
 - [`slurm/`](slurm/) — independently runnable Slurm jobs
 
-Each `.sbatch` file may also be submitted directly. In that case, export `PROJECT_ROOT` and `DATA_ROOT` if the checkout and data are not at their defaults.
+Each `.sbatch` file may also be submitted directly after bootstrap. `inference.sbatch` fails early unless Slurm exposes all four GPUs, so no separate preflight allocation is needed. Export `PROJECT_ROOT` and `DATA_ROOT` when submitting directly if the checkout and data are not at their defaults. Neither job hard-codes a reservation or node name.
 
 ## Scope and cautions
 
