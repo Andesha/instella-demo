@@ -17,7 +17,6 @@ EOF
 reservation=
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DATA_ROOT=${DATA_ROOT:-$HOME/scratch/instella-demo}
-source "$PROJECT_ROOT/scripts/versions.env"
 while (($#)); do
   case "$1" in
     --reservation) reservation=${2:?reservation name required}; shift 2 ;;
@@ -27,7 +26,7 @@ while (($#)); do
   esac
 done
 
-[[ -r "$DATA_ROOT/containers/$CONTAINER_NAME" ]] || {
+[[ -r "$DATA_ROOT/containers/rocm-megatron-lm-v25.8-py310.sif" ]] || {
   echo "Container not found under $DATA_ROOT; run scripts/bootstrap.sh first." >&2
   exit 1
 }

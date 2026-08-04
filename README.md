@@ -28,7 +28,7 @@ bash scripts/submit.sh
 bash scripts/submit.sh --reservation TylerJobs
 ```
 
-`bootstrap.sh` performs all non-GPU setup on the login node, including a container import check. Downloads are resumable. `submit.sh` then passes the repository and data paths to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Therefore the checkout can live anywhere; users do not need to edit job files. Use `--data-root PATH` instead of exporting `DATA_ROOT` if preferred.
+`bootstrap.sh` performs all non-GPU setup on the login node, including a container import check. Downloads are resumable. The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` then passes the repository and data paths to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Therefore the checkout can live anywhere; users do not need to edit job files. Use `--data-root PATH` instead of exporting `DATA_ROOT` if preferred.
 
 Monitor the workflow with:
 
@@ -70,7 +70,7 @@ Each `.sbatch` file may also be submitted directly after bootstrap. `inference.s
 - Released weights are research-only under AMD's ResearchRAIL license.
 - Hugging Face model code uses `trust_remote_code=True`; pin and review revisions for production use.
 - Full pretraining, SFT, DPO, and RL require curated datasets and substantially more compute.
-- Versions are centralized in [`scripts/versions.env`](scripts/versions.env).
+- The upstream repository, revision, container, and model constants are documented near the top of `scripts/bootstrap.sh`.
 
 ## Upstream references
 

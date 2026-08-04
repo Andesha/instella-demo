@@ -12,9 +12,8 @@
 set -euo pipefail
 PROJECT_ROOT=${PROJECT_ROOT:-$HOME/instella-demo}
 DATA_ROOT=${DATA_ROOT:-$HOME/scratch/instella-demo}
-source "$PROJECT_ROOT/scripts/versions.env"
 module load apptainer/1.4.5
-image="$DATA_ROOT/containers/$CONTAINER_NAME"
+image="$DATA_ROOT/containers/rocm-megatron-lm-v25.8-py310.sif"
 upstream="$PROJECT_ROOT/vendor/Instella-MoE"
 [[ -d "$upstream/training" ]] || { echo "Run scripts/bootstrap.sh first" >&2; exit 1; }
 mkdir -p "$DATA_ROOT"/{outputs,huggingface,run-configs}
