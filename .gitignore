@@ -219,6 +219,7 @@ __marimo__/
 
 # Instella demo artifacts
 vendor/
+apptainer/
 containers/
 huggingface/
 models/

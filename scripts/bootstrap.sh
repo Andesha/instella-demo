@@ -13,7 +13,13 @@ CONTAINER_URI=docker://rocm/megatron-lm:v25.8_py310
 CONTAINER_NAME=rocm-megatron-lm-v25.8-py310.sif
 MODEL_ID=amd/Instella-MoE-16B-A3B-SFT
 
-mkdir -p "$DATA_ROOT"/{containers,huggingface,models,outputs,logs} "$PROJECT_ROOT/vendor"
+mkdir -p "$DATA_ROOT"/{containers,huggingface,models,outputs,logs,apptainer/cache,apptainer/tmp} \
+  "$PROJECT_ROOT/vendor"
+
+# Apptainer otherwise caches OCI layers under ~/.apptainer, which can easily
+# exhaust Nibi's small home quota while converting this large ROCm image.
+export APPTAINER_CACHEDIR="$DATA_ROOT/apptainer/cache"
+export APPTAINER_TMPDIR="$DATA_ROOT/apptainer/tmp"
 
 if [[ ! -d "$PROJECT_ROOT/vendor/Instella-MoE/.git" ]]; then
   git clone --recurse-submodules "$INSTELLA_REPO" "$PROJECT_ROOT/vendor/Instella-MoE"

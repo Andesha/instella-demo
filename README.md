@@ -26,7 +26,7 @@ bash scripts/submit.sh
 bash scripts/submit.sh --reservation TylerJobs
 ```
 
-By default, everything stays inside the scratch checkout: the SIF under `containers/`, model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. `bootstrap.sh` performs all non-GPU setup on the login node, including a container import check, and downloads are resumable.
+By default, everything stays inside the scratch checkout: the SIF under `containers/`, Apptainer's layer cache and temporary build files under `apptainer/`, the model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. `bootstrap.sh` performs all non-GPU setup on the login node, including a container import check, and downloads are resumable.
 
 The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` passes the checkout path to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Use `--data-root PATH` only if generated artifacts should live outside the checkout.
 
