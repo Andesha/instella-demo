@@ -61,6 +61,8 @@ Common issues:
 - [`scripts/bootstrap.sh`](scripts/bootstrap.sh) — clone the official recipe and pull its container
 - [`scripts/submit.sh`](scripts/submit.sh) — submit the workflow, optionally using a reservation
 - [`scripts/infer.py`](scripts/infer.py) — minimal Transformers smoke test
+- [`scripts/run-mock-training.sh`](scripts/run-mock-training.sh) — documented adaptation of AMD's mock recipe
+- [`configs/mock-train.patch`](configs/mock-train.patch) — bounded changes applied to the upstream recipe
 - [`slurm/`](slurm/) — independently runnable Slurm jobs
 
 Each `.sbatch` file may also be submitted directly from the repository root after bootstrap. `inference.sbatch` fails early unless Slurm exposes all four GPUs, so no separate preflight allocation is needed. Neither job hard-codes a reservation or node name.
