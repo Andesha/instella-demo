@@ -45,15 +45,9 @@ The jobs request `gpu:mi300a` from Nibi's `gpubase_bygpu_b1` partition. A full M
 
 Nibi provides Apptainer. The bootstrap script converts AMD's documented `rocm/megatron-lm:v25.8_py310` image into a SIF, and jobs use `apptainer exec --rocm` to expose allocated AMD devices. Durable models and checkpoints are stored under `$DATA_ROOT`; do not place them in `$SLURM_TMPDIR`, which disappears after a job.
 
+During image conversion, Apptainer may print many `ignoring (usually) harmless EPERM on setxattr "user.rootlesscontainers"` warnings. This is expected when rootless Apptainer cannot restore optional OCI extended attributes on the scratch filesystem. The warnings can be ignored if bootstrap continues to the container check and prints `Bootstrap complete`.
+
 MI300A is an APU with unified memory, while AMD's original large-scale run used MI300X and MI325X GPUs. This demo establishes functional portability, not equivalent scale or performance. `HSA_XNACK=1` is enabled for retryable page faults on the supported MI300A stack.
-
-Common issues:
-
-- **Image pull or quota failure:** budget at least 300 GB for the container, model, caches, source, and model-only training checkpoint. Move the checkout to a larger scratch/project filesystem if needed, or set `--data-root` when submitting and `DATA_ROOT` during bootstrap.
-- **No ROCm devices:** verify the job received its GPU GRES; do not run GPU commands directly on the login node.
-- **Out of memory:** confirm no other processes occupy the node and inspect the job output/`rocm-smi`.
-- **Reservation rejected:** check its spelling and dates with `scontrol show reservation NAME`. Omit `--reservation` to use the normal queue.
-- **Upstream recipe changes:** preserve the upstream commit printed by bootstrap with demo results.
 
 ## Repository layout
 
