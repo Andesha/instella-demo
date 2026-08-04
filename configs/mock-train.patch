@@ -20,12 +20,14 @@
        no_load_rng: null
 -      save: /outputs/path/to/checkpoints/instella_moe_mock_pretrain
 -      save_interval: 1000
-+      save: /demo-data/outputs/instella_moe_mock_pretrain
-+      save_interval: 5
-       no_save_optim: null
-       no_save_rng: null
+-      no_save_optim: null
+-      no_save_rng: null
 -      disable_last_saving: true # disable for mock test
-+      disable_last_saving: false # retain the final demo checkpoint
++      save: /demo-data/outputs/instella_moe_mock_pretrain
++      save_interval: 10
++      no_save_optim: true
++      no_save_rng: true
++      disable_last_saving: false # retain one model-only demo checkpoint
        ckpt_format: torch
        # Turbo
        enable_primus_turbo: true

@@ -9,7 +9,7 @@ Instella-MoE has 16B total parameters, 2.8B active parameters/token, and 64 expe
 
 ## Quick start
 
-On a Nibi login node, clone the project directly onto scratch (at least 100 GB free):
+On a Nibi login node, clone the project directly onto scratch (**at least 300 GB free**):
 
 ```bash
 cd "$SCRATCH"
@@ -49,7 +49,7 @@ MI300A is an APU with unified memory, while AMD's original large-scale run used 
 
 Common issues:
 
-- **Image pull or quota failure:** move the checkout to a larger scratch/project filesystem, or set `--data-root` when submitting and `DATA_ROOT` during bootstrap.
+- **Image pull or quota failure:** budget at least 300 GB for the container, model, caches, source, and model-only training checkpoint. Move the checkout to a larger scratch/project filesystem if needed, or set `--data-root` when submitting and `DATA_ROOT` during bootstrap.
 - **No ROCm devices:** verify the job received its GPU GRES; do not run GPU commands directly on the login node.
 - **Out of memory:** confirm no other processes occupy the node and inspect the job output/`rocm-smi`.
 - **Reservation rejected:** check its spelling and dates with `scontrol show reservation NAME`. Omit `--reservation` to use the normal queue.

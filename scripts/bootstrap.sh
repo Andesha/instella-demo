@@ -7,7 +7,8 @@ DATA_ROOT=${DATA_ROOT:-$PROJECT_ROOT}
 # Upstream inputs for this demo. Edit these constants to update the source,
 # container, or checkpoint used by bootstrap.
 INSTELLA_REPO=https://github.com/AMD-AGI/Instella-MoE.git
-INSTELLA_REF=main
+# Pinned because configs/mock-train.patch targets this exact upstream recipe.
+INSTELLA_REF=57cc9411bca170d190acacbde62096948d18023f
 CONTAINER_URI=docker://rocm/megatron-lm:v25.8_py310
 CONTAINER_NAME=rocm-megatron-lm-v25.8-py310.sif
 MODEL_ID=amd/Instella-MoE-16B-A3B-SFT
