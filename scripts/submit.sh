@@ -46,6 +46,6 @@ submit() {
   printf '%s' "$job"
 }
 
-inference=$(submit '' 20-inference.sbatch); echo "inference: $inference"
-training=$(submit "$inference" 30-mock-train.sbatch); echo "training:  $training"
+inference=$(submit '' inference.sbatch); echo "inference: $inference"
+training=$(submit "$inference" mock-train.sbatch); echo "training:  $training"
 echo "Submitted successfully. Monitor with: squeue -u $USER"
