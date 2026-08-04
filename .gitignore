@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Instella demo artifacts
+vendor/
+*.sif
+logs/
+outputs/
+.env
