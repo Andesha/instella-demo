@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/submit.sh [--reservation NAME] [--data-root PATH]
+
+Submit the complete demo as a dependency chain. A reservation is optional;
+without one, jobs enter the normal MI300A queue.
+
+Examples:
+  scripts/submit.sh
+  scripts/submit.sh --reservation TylerJobs
+EOF
+}
+
+reservation=
+PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+DATA_ROOT=${DATA_ROOT:-$HOME/scratch/instella-demo}
+source "$PROJECT_ROOT/scripts/versions.env"
+while (($#)); do
+  case "$1" in
+    --reservation) reservation=${2:?reservation name required}; shift 2 ;;
+    --data-root) DATA_ROOT=${2:?path required}; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+[[ -r "$DATA_ROOT/containers/$CONTAINER_NAME" ]] || {
+  echo "Container not found under $DATA_ROOT; run scripts/bootstrap.sh first." >&2
+  exit 1
+}
+
+args=(--parsable --export="ALL,PROJECT_ROOT=$PROJECT_ROOT,DATA_ROOT=$DATA_ROOT")
+if [[ -n "$reservation" ]]; then
+  scontrol show reservation "$reservation" >/dev/null
+  args+=(--reservation="$reservation")
+fi
+
+submit() {
+  local dependency=$1 file=$2 job
+  local extra=()
+  [[ -n "$dependency" ]] && extra+=(--dependency="afterok:$dependency")
+  job=$(sbatch "${args[@]}" "${extra[@]}" "$PROJECT_ROOT/slurm/$file")
+  printf '%s' "$job"
+}
+
+preflight=$(submit '' 00-preflight.sbatch); echo "preflight: $preflight"
+download=$(submit "$preflight" 10-download.sbatch); echo "download:  $download"
+inference=$(submit "$download" 20-inference.sbatch); echo "inference: $inference"
+training=$(submit "$inference" 30-mock-train.sbatch); echo "training:  $training"
+echo "Submitted successfully. Monitor with: squeue -u $USER"
