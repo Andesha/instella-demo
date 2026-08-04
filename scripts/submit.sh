@@ -16,7 +16,7 @@ EOF
 
 reservation=
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-DATA_ROOT=${DATA_ROOT:-$HOME/scratch/instella-demo}
+DATA_ROOT=${DATA_ROOT:-$PROJECT_ROOT}
 while (($#)); do
   case "$1" in
     --reservation) reservation=${2:?reservation name required}; shift 2 ;;

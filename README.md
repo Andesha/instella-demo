@@ -9,16 +9,14 @@ Instella-MoE has 16B total parameters, 2.8B active parameters/token, and 64 expe
 
 ## Quick start
 
-On a Nibi login node:
+On a Nibi login node, clone the project directly onto scratch (at least 100 GB free):
 
 ```bash
-git clone <this-repository-url>
+cd "$SCRATCH"
+git clone <this-repository-url> instella-demo
 cd instella-demo
 
-# Optional: choose storage with at least 100 GB free.
-export DATA_ROOT="$HOME/scratch/instella-demo"
-
-# Fetch AMD's source, build its ROCm Apptainer SIF, and download the model.
+# Fetch AMD's source, build the ROCm Apptainer SIF, and download the model.
 bash scripts/bootstrap.sh
 
 # Normal scheduler operation—no reservation required.
@@ -28,7 +26,9 @@ bash scripts/submit.sh
 bash scripts/submit.sh --reservation TylerJobs
 ```
 
-`bootstrap.sh` performs all non-GPU setup on the login node, including a container import check. Downloads are resumable. The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` then passes the repository and data paths to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Therefore the checkout can live anywhere; users do not need to edit job files. Use `--data-root PATH` instead of exporting `DATA_ROOT` if preferred.
+By default, everything stays inside the scratch checkout: the SIF under `containers/`, model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. `bootstrap.sh` performs all non-GPU setup on the login node, including a container import check, and downloads are resumable.
+
+The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` passes the checkout path to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Use `--data-root PATH` only if generated artifacts should live outside the checkout.
 
 Monitor the workflow with:
 
@@ -49,7 +49,7 @@ MI300A is an APU with unified memory, while AMD's original large-scale run used 
 
 Common issues:
 
-- **Image pull or quota failure:** choose a larger filesystem with `DATA_ROOT` and rerun bootstrap.
+- **Image pull or quota failure:** move the checkout to a larger scratch/project filesystem, or set `--data-root` when submitting and `DATA_ROOT` during bootstrap.
 - **No ROCm devices:** verify the job received its GPU GRES; do not run GPU commands directly on the login node.
 - **Out of memory:** confirm no other processes occupy the node and inspect the job output/`rocm-smi`.
 - **Reservation rejected:** check its spelling and dates with `scontrol show reservation NAME`. Omit `--reservation` to use the normal queue.
@@ -63,7 +63,7 @@ Common issues:
 - [`scripts/infer.py`](scripts/infer.py) — minimal Transformers smoke test
 - [`slurm/`](slurm/) — independently runnable Slurm jobs
 
-Each `.sbatch` file may also be submitted directly after bootstrap. `inference.sbatch` fails early unless Slurm exposes all four GPUs, so no separate preflight allocation is needed. Export `PROJECT_ROOT` and `DATA_ROOT` when submitting directly if the checkout and data are not at their defaults. Neither job hard-codes a reservation or node name.
+Each `.sbatch` file may also be submitted directly from the repository root after bootstrap. `inference.sbatch` fails early unless Slurm exposes all four GPUs, so no separate preflight allocation is needed. Neither job hard-codes a reservation or node name.
 
 ## Scope and cautions
 

@@ -10,8 +10,8 @@
 #SBATCH --output=%x-%j.out
 
 set -euo pipefail
-PROJECT_ROOT=${PROJECT_ROOT:-$HOME/instella-demo}
-DATA_ROOT=${DATA_ROOT:-$HOME/scratch/instella-demo}
+PROJECT_ROOT=${PROJECT_ROOT:-${SLURM_SUBMIT_DIR:-$PWD}}
+DATA_ROOT=${DATA_ROOT:-$PROJECT_ROOT}
 module load apptainer/1.4.5
 image="$DATA_ROOT/containers/rocm-megatron-lm-v25.8-py310.sif"
 upstream="$PROJECT_ROOT/vendor/Instella-MoE"

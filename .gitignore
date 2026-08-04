@@ -219,6 +219,10 @@ __marimo__/
 
 # Instella demo artifacts
 vendor/
+containers/
+huggingface/
+models/
+run-configs/
 *.sif
 logs/
 outputs/
