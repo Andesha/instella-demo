@@ -25,18 +25,12 @@ module load apptainer/1.4.5
 image="$DATA_ROOT/containers/$CONTAINER_NAME"
 [[ -f "$image" ]] || apptainer pull "$image" "$CONTAINER_URI"
 
-# Download (or resume) the selected public checkpoint during setup. No GPU is
-# needed, so this is safe to run on the login node.
+# Download (or resume) the selected public checkpoint. This does not need a GPU.
 model_name=${MODEL_ID//\//--}
-apptainer exec \
-  --bind "$DATA_ROOT:/demo-data" \
-  --env HF_HOME=/demo-data/huggingface \
-  "$image" python - "$MODEL_ID" "/demo-data/models/$model_name" <<'PY'
-import sys
-from huggingface_hub import snapshot_download
-model, destination = sys.argv[1:]
-print(f"Model ready at {snapshot_download(repo_id=model, local_dir=destination)}")
-PY
+apptainer exec --bind "$DATA_ROOT:/demo-data" "$image" \
+  huggingface-cli download "$MODEL_ID" \
+  --local-dir "/demo-data/models/$model_name" \
+  --cache-dir /demo-data/huggingface
 ln -sfn "$model_name" "$DATA_ROOT/models/current"
 printf '%s\n' "$MODEL_ID" > "$DATA_ROOT/models/current-model-id"
 
