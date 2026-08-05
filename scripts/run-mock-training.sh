@@ -24,6 +24,11 @@ patch "$config" < "$PROJECT_ROOT/configs/mock-train.patch"
 # Why: the upstream launcher defaults to eight GPUs and long sequences. These
 # values describe Nibi's single four-MI300A node and keep the proof run bounded.
 export HSA_XNACK=1
+# All four ranks import AITER concurrently. Use one pre-created node-local JIT
+# directory so they coordinate through AITER's locks instead of racing while
+# copying ~/.aiter/jit into the quota-limited home filesystem.
+export AITER_JIT_DIR="$SLURM_TMPDIR/aiter-jit"
+mkdir -p "$AITER_JIT_DIR"
 export GPUS_PER_NODE=4 NNODES=1 NODE_RANK=0
 export PRIMUS_EP=4 PRIMUS_TP=1 PRIMUS_PP=1
 export PRIMUS_SEQ_LENGTH=${PRIMUS_SEQ_LENGTH:-512}
@@ -32,7 +37,7 @@ export MASTER_ADDR=127.0.0.1 MASTER_PORT=$((20000 + SLURM_JOB_ID % 20000))
 
 # Why: Apptainer only guarantees explicitly prefixed host variables inside the
 # container. Primus reads these values to configure torchrun and parallelism.
-for name in HSA_XNACK GPUS_PER_NODE NNODES NODE_RANK PRIMUS_EP PRIMUS_TP PRIMUS_PP \
+for name in HSA_XNACK AITER_JIT_DIR GPUS_PER_NODE NNODES NODE_RANK PRIMUS_EP PRIMUS_TP PRIMUS_PP \
             PRIMUS_SEQ_LENGTH PRIMUS_MAX_POSITION_EMBEDDINGS MASTER_ADDR MASTER_PORT; do
   export "APPTAINERENV_${name}=${!name}"
 done
