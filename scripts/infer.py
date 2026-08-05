@@ -38,6 +38,10 @@ def main() -> None:
         disable_radix_cache=True,
         attention_backend="triton",
         mem_fraction_static=0.8,
+        # SGLang otherwise fills nearly all remaining memory with a large KV
+        # cache. This smoke test needs only one short prompt and response.
+        max_total_tokens=1024,
+        max_running_requests=4,
         trust_remote_code=True,
     )
     try:
