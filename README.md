@@ -43,7 +43,7 @@ Successful evidence is generated text from a process that detected four ROCm dev
 
 ## Nibi and MI300A notes
 
-The jobs request `gpu:mi300a` from Nibi's `gpubase_bygpu_b1` partition. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. Both inference and training request all four GPUs and 450 GB.
+The jobs request Nibi's `gpu:mi300a` resources without forcing a partition, allowing Slurm or the selected reservation to route them correctly. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. Both inference and training request all four GPUs and 450 GB.
 
 Nibi provides Apptainer. The bootstrap script converts AMD's documented `rocm/megatron-lm:v25.8_py310` image into a SIF, and jobs use `apptainer exec --rocm` to expose allocated AMD devices. Durable models and checkpoints are stored under `$DATA_ROOT`; do not place them in `$SLURM_TMPDIR`, which disappears after a job.
 

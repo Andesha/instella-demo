@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --job-name=instella-bootstrap
-#SBATCH --partition=gpubase_bygpu_b1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16

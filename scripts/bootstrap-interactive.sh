@@ -20,7 +20,6 @@ DATA_ROOT=${DATA_ROOT:-$PROJECT_ROOT}
 args=(
   --job-name=instella-bootstrap
   --account="$account"
-  --partition=gpubase_bygpu_b1
   --nodes=1
   --ntasks=1
   --cpus-per-task=16
