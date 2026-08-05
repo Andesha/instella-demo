@@ -24,4 +24,5 @@ apptainer exec --rocm \
   --env MODEL_ID="$MODEL_ID" \
   --env MODEL_PATH=/demo-data/models/current \
   --env HF_HOME=/demo-data/huggingface \
+  --env PYTHONPATH=/demo-data/python \
   "$image" python /workspace/scripts/infer.py

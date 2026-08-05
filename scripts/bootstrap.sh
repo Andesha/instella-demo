@@ -13,6 +13,8 @@ INSTELLA_REF=57cc9411bca170d190acacbde62096948d18023f
 CONTAINER_URI=docker://rocm/megatron-lm:v25.8_py310
 CONTAINER_NAME=rocm-megatron-lm-v25.8-py310.sif
 MODEL_ID=amd/Instella-MoE-16B-A3B-SFT
+# The checkpoint's remote model code declares this newer Transformers release.
+TRANSFORMERS_VERSION=4.57.1
 
 mkdir -p "$DATA_ROOT"/{containers,huggingface,models,outputs,logs} "$PROJECT_ROOT/vendor"
 
@@ -77,12 +79,23 @@ apptainer exec --bind "$DATA_ROOT:/demo-data" \
   "$image" hf download "$MODEL_ID" \
   --local-dir "/demo-data/models/$model_name" \
   --cache-dir /demo-data/huggingface
+
+# The training image ships Transformers 4.46.3, but Instella's model code uses
+# APIs from 4.57.1. Install the compatible inference library beside the model
+# rather than modifying the immutable SIF or AMD's pinned training environment.
+apptainer exec --bind "$DATA_ROOT:/demo-data" \
+  --env SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+  --env CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+  "$image" pip install --quiet --no-cache-dir --upgrade \
+  --target /demo-data/python "transformers==$TRANSFORMERS_VERSION"
+
 ln -sfn "$model_name" "$DATA_ROOT/models/current"
 printf '%s\n' "$MODEL_ID" > "$DATA_ROOT/models/current-model-id"
 
 # Software-only smoke test. GPU visibility is checked inside the inference job,
 # where Slurm has actually allocated the devices.
-apptainer exec "$image" python - <<'PY'
+apptainer exec --bind "$DATA_ROOT:/demo-data" \
+  --env PYTHONPATH=/demo-data/python "$image" python - <<'PY'
 import torch, transformers
 print(f"Container check: torch={torch.__version__}, transformers={transformers.__version__}")
 PY

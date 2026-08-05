@@ -222,6 +222,7 @@ vendor/
 containers/
 huggingface/
 models/
+python/
 run-configs/
 *.sif
 logs/

@@ -26,7 +26,7 @@ bash scripts/submit.sh
 # bash scripts/submit.sh --reservation TylerJobs
 ```
 
-By default, persistent artifacts stay inside the scratch checkout: the SIF under `containers/`, model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. The bootstrap allocation performs the container import check and resumable downloads without burdening the login node.
+By default, persistent artifacts stay inside the scratch checkout: the SIF under `containers/`, model under `models/`, inference-only Python packages under `python/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. The bootstrap allocation performs the container import check and resumable downloads without burdening the login node.
 
 Container conversion runs inside a Slurm allocation. Apptainer's cache, extracted root filesystem, and initial SIF are built under fast node-local `$SLURM_TMPDIR`; only the completed SIF is copied to scratch. For an attended run instead of a batch job, use `bash scripts/bootstrap-interactive.sh [--reservation NAME] [--account ACCOUNT]`. Bootstrap and demo submission default to the `cc-debug` account; pass `--account ACCOUNT` to either wrapper to override it.
 
