@@ -28,10 +28,14 @@ while (($#)); do
   esac
 done
 
-[[ -r "$DATA_ROOT/containers/rocm-megatron-lm-v25.8-py310.sif" ]] || {
-  echo "Container not found under $DATA_ROOT; run scripts/bootstrap.sh first." >&2
-  exit 1
-}
+for image in \
+  rocm-megatron-lm-v25.8-py310.sif \
+  miles-rocm7-mi300-sglang0.5.9.sif; do
+  [[ -r "$DATA_ROOT/containers/$image" ]] || {
+    echo "Container not found: $DATA_ROOT/containers/$image; rerun bootstrap." >&2
+    exit 1
+  }
+done
 
 args=(--parsable --account="$account" --export="ALL,PROJECT_ROOT=$PROJECT_ROOT,DATA_ROOT=$DATA_ROOT")
 if [[ -n "$reservation" ]]; then

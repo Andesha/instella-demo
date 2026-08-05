@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
+"""Minimal offline generation through AMD's supported SGLang overlay."""
+
 import os
 
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import sglang as sgl
+from transformers import AutoTokenizer
 
-visible_gpus = torch.cuda.device_count()
-if visible_gpus != 1:
-    raise RuntimeError(f"Expected 1 allocated MI300A GPU, found {visible_gpus}")
-
+model_path = os.environ.get("MODEL_PATH", "/demo-data/models/current")
 model_id = os.environ.get("MODEL_ID", "amd/Instella-MoE-16B-A3B-SFT")
-model_path = os.environ.get("MODEL_PATH", model_id)
 prompt = os.environ.get(
     "PROMPT",
     "Explain in three sentences why mixture-of-experts models are computationally efficient.",
@@ -18,30 +16,34 @@ prompt = os.environ.get(
 tokenizer = AutoTokenizer.from_pretrained(
     model_path, trust_remote_code=True, local_files_only=True
 )
-# The 16B BF16 checkpoint fits in one MI300A's unified memory. Keeping the
-# smoke test on one device avoids the very slow cross-device path produced by
-# Accelerate's automatic placement for this custom MoE architecture.
-model = AutoModelForCausalLM.from_pretrained(
-    model_path,
-    trust_remote_code=True,
-    local_files_only=True,
-    dtype=torch.bfloat16,
-    device_map={"": "cuda:0"},
-)
-inputs = tokenizer.apply_chat_template(
+formatted_prompt = tokenizer.apply_chat_template(
     [{"role": "user", "content": prompt}],
     add_generation_prompt=True,
-    return_tensors="pt",
-    return_dict=True,
-).to(model.device)
+    tokenize=False,
+)
 
-with torch.inference_mode():
-    output = model.generate(
-        **inputs,
-        max_new_tokens=32,
-        do_sample=False,
-        pad_token_id=tokenizer.eos_token_id,
+# AMD's reference uses eight-way EP/TP/DP. Nibi has four MI300As, and the
+# model's 64 routed experts divide evenly across four expert-parallel ranks.
+engine = sgl.Engine(
+    model_path=model_path,
+    dp_size=4,
+    tp_size=4,
+    ep_size=4,
+    enable_dp_attention=True,
+    dtype="bfloat16",
+    cuda_graph_max_bs=1,
+    disable_shared_experts_fusion=True,
+    disable_radix_cache=True,
+    attention_backend="triton",
+    mem_fraction_static=0.8,
+    trust_remote_code=True,
+)
+try:
+    output = engine.generate(
+        [formatted_prompt],
+        sampling_params={"temperature": 0, "max_new_tokens": 32},
     )
-
-print(tokenizer.decode(output[0], skip_special_tokens=True))
-print(f"\nmodel={model_id} visible_gpus={visible_gpus}")
+    print(output[0]["text"])
+    print(f"\nmodel={model_id} visible_gpus=4 engine=sglang")
+finally:
+    engine.shutdown()

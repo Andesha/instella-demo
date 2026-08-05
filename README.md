@@ -26,7 +26,7 @@ bash scripts/submit.sh
 # bash scripts/submit.sh --reservation TylerJobs
 ```
 
-By default, persistent artifacts stay inside the scratch checkout: the SIF under `containers/`, model under `models/`, inference-only Python packages under `python/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. The bootstrap allocation performs the container import check and resumable downloads without burdening the login node.
+By default, persistent artifacts stay inside the scratch checkout: the training and SGLang SIFs under `containers/`, model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. The bootstrap allocation performs the container import check and resumable downloads without burdening the login node.
 
 Container conversion runs inside a Slurm allocation. Apptainer's cache, extracted root filesystem, and initial SIF are built under fast node-local `$SLURM_TMPDIR`; only the completed SIF is copied to scratch. For an attended run instead of a batch job, use `bash scripts/bootstrap-interactive.sh [--reservation NAME] [--account ACCOUNT]`. Bootstrap and demo submission default to the `cc-debug` account; pass `--account ACCOUNT` to either wrapper to override it.
 
@@ -39,13 +39,13 @@ squeue -u "$USER"
 tail -f instella-*.out
 ```
 
-Successful evidence is generated text on one MI300A, followed by loss and checkpoint output from four-GPU mock training. Slurm writes scheduler output in the directory where `submit.sh` is invoked; the training application also writes its detailed log and checkpoints under `$DATA_ROOT/outputs`.
+Successful evidence is generated text through AMD's four-MI300A SGLang path, followed by loss and checkpoint output from four-GPU mock training. Slurm writes scheduler output in the directory where `submit.sh` is invoked; the training application also writes its detailed log and checkpoints under `$DATA_ROOT/outputs`.
 
 ## Nibi and MI300A notes
 
-The jobs request Nibi's `gpu:mi300a` resources without forcing a partition, allowing Slurm or the selected reservation to route them correctly. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. Inference keeps the model on one MI300A and requests 120 GB; mock training requests all four GPUs and 450 GB.
+The jobs request Nibi's `gpu:mi300a` resources without forcing a partition, allowing Slurm or the selected reservation to route them correctly. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. Both AMD's SGLang inference path and mock training request all four GPUs and 450 GB.
 
-Nibi provides Apptainer. The bootstrap script converts AMD's documented `rocm/megatron-lm:v25.8_py310` image into a SIF, and jobs use `apptainer exec --rocm` to expose allocated AMD devices. Durable models and checkpoints are stored under `$DATA_ROOT`; do not place them in `$SLURM_TMPDIR`, which disappears after a job.
+Nibi provides Apptainer. Bootstrap converts AMD's documented Megatron training image and Miles/SGLang inference image into separate SIFs. Jobs use `apptainer exec --rocm` to expose allocated AMD devices. At inference startup, AMD's pinned Instella SGLang/FarSkip files are applied through an ephemeral writable layer; the persisted SIF remains unchanged. Durable models and checkpoints are stored under `$DATA_ROOT`; do not place them in `$SLURM_TMPDIR`, which disappears after a job.
 
 During image conversion, Apptainer may print many `ignoring (usually) harmless EPERM on setxattr "user.rootlesscontainers"` warnings. This is expected when rootless Apptainer cannot restore optional OCI extended attributes on the node-local build filesystem. The warnings can be ignored if bootstrap continues to the container check and prints `Bootstrap complete`.
 
@@ -58,7 +58,8 @@ MI300A is an APU with unified memory, while AMD's original large-scale run used 
 - [`scripts/bootstrap-interactive.sh`](scripts/bootstrap-interactive.sh) — run the same bootstrap through `salloc`
 - [`scripts/bootstrap.sh`](scripts/bootstrap.sh) — shared bootstrap worker
 - [`scripts/submit.sh`](scripts/submit.sh) — submit the workflow, optionally using a reservation
-- [`scripts/infer.py`](scripts/infer.py) — minimal Transformers smoke test
+- [`scripts/run-inference.sh`](scripts/run-inference.sh) — apply AMD's SGLang overlay and launch inference
+- [`scripts/infer.py`](scripts/infer.py) — minimal offline SGLang smoke test
 - [`scripts/run-mock-training.sh`](scripts/run-mock-training.sh) — documented adaptation of AMD's mock recipe
 - [`configs/mock-train.patch`](configs/mock-train.patch) — bounded changes applied to the upstream recipe
 - [`slurm/`](slurm/) — independently runnable Slurm jobs
