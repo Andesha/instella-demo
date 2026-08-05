@@ -25,15 +25,12 @@ apptainer overlay create --size 16384 "$overlay"
 # These are AMD's documented Instella SGLang settings. The writable temporary
 # layer lets the pinned AMD overlay patch /app/sglang without changing the SIF.
 export SGLANG_ROCM_FUSED_DECODE_MLA=0
-# The image's AITER MoE JIT module builds but cannot be imported on Nibi's
-# MI300A stack. Use SGLang's Triton fallback for this portability smoke test.
-export SGLANG_USE_AITER=0
 export GPU_MAX_HW_QUEUES=8
 export MODE=FARSKIP_REFERENCE
 export FARSKIP_REFERENCE_DECODER_LAYER=1
 export HSA_XNACK=1
-for name in SGLANG_ROCM_FUSED_DECODE_MLA SGLANG_USE_AITER GPU_MAX_HW_QUEUES \
-            MODE FARSKIP_REFERENCE_DECODER_LAYER HSA_XNACK; do
+for name in SGLANG_ROCM_FUSED_DECODE_MLA GPU_MAX_HW_QUEUES MODE \
+            FARSKIP_REFERENCE_DECODER_LAYER HSA_XNACK; do
   export "APPTAINERENV_${name}=${!name}"
 done
 
@@ -48,5 +45,8 @@ apptainer exec --rocm --overlay "$overlay" \
     bash /workspace/vendor/Instella-MoE/inference/scripts/update_sglang_workspace_files.sh \
       /workspace/vendor/Instella-MoE/inference/sglang/python /app/sglang/python
     export PYTHONPATH=/app/sglang/python:${PYTHONPATH:-}
+    # The image enables AITER by default. Unset it rather than assigning "0";
+    # some SGLang paths treat any non-empty value as enabled.
+    unset SGLANG_USE_AITER
     python /workspace/scripts/infer.py
   '
