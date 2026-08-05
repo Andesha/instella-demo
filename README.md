@@ -28,7 +28,7 @@ bash scripts/submit.sh
 
 By default, persistent artifacts stay inside the scratch checkout: the SIF under `containers/`, model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. The bootstrap allocation performs the container import check and resumable downloads without burdening the login node.
 
-Container conversion runs inside a Slurm allocation. Apptainer's cache, extracted root filesystem, and initial SIF are built under fast node-local `$SLURM_TMPDIR`; only the completed SIF is copied to scratch. For an attended run instead of a batch job, use `bash scripts/bootstrap-interactive.sh [--reservation NAME] [--account ACCOUNT]`. The interactive allocation defaults to the `cc-debug` account.
+Container conversion runs inside a Slurm allocation. Apptainer's cache, extracted root filesystem, and initial SIF are built under fast node-local `$SLURM_TMPDIR`; only the completed SIF is copied to scratch. For an attended run instead of a batch job, use `bash scripts/bootstrap-interactive.sh [--reservation NAME] [--account ACCOUNT]`. Bootstrap and demo submission default to the `cc-debug` account; pass `--account ACCOUNT` to either wrapper to override it.
 
 The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` passes the checkout path to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Use `--data-root PATH` only if generated artifacts should live outside the checkout.
 
