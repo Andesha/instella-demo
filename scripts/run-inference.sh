@@ -14,6 +14,14 @@ model_id_file="$DATA_ROOT/models/current-model-id"
 module load apptainer/1.4.5
 MODEL_ID=$(<"$model_id_file")
 
+# Apptainer's default writable tmpfs is intentionally small, but AITER compiles
+# ROCm kernels under /app on first use. Give the ephemeral writable layer enough
+# node-local space for those build products.
+export APPTAINER_TMPDIR="$SLURM_TMPDIR/apptainer-tmp"
+mkdir -p "$APPTAINER_TMPDIR"
+overlay="$SLURM_TMPDIR/instella-inference-overlay.img"
+apptainer overlay create --size 16384 "$overlay"
+
 # These are AMD's documented Instella SGLang settings. The writable temporary
 # layer lets the pinned AMD overlay patch /app/sglang without changing the SIF.
 export SGLANG_ROCM_FUSED_DECODE_MLA=0
@@ -27,7 +35,7 @@ for name in SGLANG_ROCM_FUSED_DECODE_MLA SGLANG_USE_AITER GPU_MAX_HW_QUEUES \
   export "APPTAINERENV_${name}=${!name}"
 done
 
-apptainer exec --rocm --writable-tmpfs \
+apptainer exec --rocm --overlay "$overlay" \
   --bind "$PROJECT_ROOT:/workspace:ro,$DATA_ROOT:/demo-data" \
   --env MODEL_ID="$MODEL_ID" \
   --env MODEL_PATH=/demo-data/models/current \
