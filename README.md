@@ -16,17 +16,19 @@ cd "$SCRATCH"
 git clone <this-repository-url> instella-demo
 cd instella-demo
 
-# Fetch AMD's source, build the ROCm Apptainer SIF, and download the model.
-bash scripts/bootstrap.sh
+# Queue bootstrap, optionally against an active reservation. The command
+# prints the log filename; wait for "Bootstrap complete" before continuing.
+bash scripts/bootstrap-batch.sh
+# bash scripts/bootstrap-batch.sh --reservation TylerJobs
 
-# Normal scheduler operation—no reservation required.
+# Then submit inference and mock training with the same scheduling choice.
 bash scripts/submit.sh
-
-# Or submit the same workflow against an active reservation.
-bash scripts/submit.sh --reservation TylerJobs
+# bash scripts/submit.sh --reservation TylerJobs
 ```
 
-By default, everything stays inside the scratch checkout: the SIF under `containers/`, Apptainer's layer cache and temporary build files under `apptainer/`, the model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. `bootstrap.sh` performs all non-GPU setup on the login node, including a container import check, and downloads are resumable.
+By default, persistent artifacts stay inside the scratch checkout: the SIF under `containers/`, model under `models/`, Hugging Face cache under `huggingface/`, AMD source under `vendor/`, and results under `outputs/`. These generated paths are ignored by Git. The bootstrap allocation performs the container import check and resumable downloads without burdening the login node.
+
+Container conversion runs inside a Slurm allocation. Apptainer's cache, extracted root filesystem, and initial SIF are built under fast node-local `$SLURM_TMPDIR`; only the completed SIF is copied to scratch. For an attended run instead of a batch job, use `bash scripts/bootstrap-interactive.sh [--reservation NAME]`.
 
 The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` passes the checkout path to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Use `--data-root PATH` only if generated artifacts should live outside the checkout.
 
@@ -45,14 +47,16 @@ The jobs request `gpu:mi300a` from Nibi's `gpubase_bygpu_b1` partition. A full M
 
 Nibi provides Apptainer. The bootstrap script converts AMD's documented `rocm/megatron-lm:v25.8_py310` image into a SIF, and jobs use `apptainer exec --rocm` to expose allocated AMD devices. Durable models and checkpoints are stored under `$DATA_ROOT`; do not place them in `$SLURM_TMPDIR`, which disappears after a job.
 
-During image conversion, Apptainer may print many `ignoring (usually) harmless EPERM on setxattr "user.rootlesscontainers"` warnings. This is expected when rootless Apptainer cannot restore optional OCI extended attributes on the scratch filesystem. The warnings can be ignored if bootstrap continues to the container check and prints `Bootstrap complete`.
+During image conversion, Apptainer may print many `ignoring (usually) harmless EPERM on setxattr "user.rootlesscontainers"` warnings. This is expected when rootless Apptainer cannot restore optional OCI extended attributes on the node-local build filesystem. The warnings can be ignored if bootstrap continues to the container check and prints `Bootstrap complete`.
 
 MI300A is an APU with unified memory, while AMD's original large-scale run used MI300X and MI325X GPUs. This demo establishes functional portability, not equivalent scale or performance. `HSA_XNACK=1` is enabled for retryable page faults on the supported MI300A stack.
 
 ## Repository layout
 
 - [`docs/MODELS.md`](docs/MODELS.md) — released checkpoint selection
-- [`scripts/bootstrap.sh`](scripts/bootstrap.sh) — clone the official recipe and pull its container
+- [`scripts/bootstrap-batch.sh`](scripts/bootstrap-batch.sh) — queue bootstrap on node-local storage
+- [`scripts/bootstrap-interactive.sh`](scripts/bootstrap-interactive.sh) — run the same bootstrap through `salloc`
+- [`scripts/bootstrap.sh`](scripts/bootstrap.sh) — shared bootstrap worker
 - [`scripts/submit.sh`](scripts/submit.sh) — submit the workflow, optionally using a reservation
 - [`scripts/infer.py`](scripts/infer.py) — minimal Transformers smoke test
 - [`scripts/run-mock-training.sh`](scripts/run-mock-training.sh) — documented adaptation of AMD's mock recipe

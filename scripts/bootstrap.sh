@@ -3,6 +3,7 @@ set -euo pipefail
 
 PROJECT_ROOT=${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
 DATA_ROOT=${DATA_ROOT:-$PROJECT_ROOT}
+: "${SLURM_TMPDIR:?Bootstrap must run inside a Slurm allocation; use bootstrap-batch.sh or bootstrap-interactive.sh}"
 
 # Upstream inputs for this demo. Edit these constants to update the source,
 # container, or checkpoint used by bootstrap.
@@ -13,13 +14,14 @@ CONTAINER_URI=docker://rocm/megatron-lm:v25.8_py310
 CONTAINER_NAME=rocm-megatron-lm-v25.8-py310.sif
 MODEL_ID=amd/Instella-MoE-16B-A3B-SFT
 
-mkdir -p "$DATA_ROOT"/{containers,huggingface,models,outputs,logs,apptainer/cache,apptainer/tmp} \
-  "$PROJECT_ROOT/vendor"
+mkdir -p "$DATA_ROOT"/{containers,huggingface,models,outputs,logs} "$PROJECT_ROOT/vendor"
 
-# Apptainer otherwise caches OCI layers under ~/.apptainer, which can easily
-# exhaust Nibi's small home quota while converting this large ROCm image.
-export APPTAINER_CACHEDIR="$DATA_ROOT/apptainer/cache"
-export APPTAINER_TMPDIR="$DATA_ROOT/apptainer/tmp"
+# OCI extraction performs huge numbers of metadata operations. Keep the cache,
+# temporary rootfs, and initial SIF on fast node-local storage, then copy only
+# the completed image back to scratch.
+export APPTAINER_CACHEDIR="$SLURM_TMPDIR/apptainer-cache"
+export APPTAINER_TMPDIR="$SLURM_TMPDIR/apptainer-tmp"
+mkdir -p "$APPTAINER_CACHEDIR" "$APPTAINER_TMPDIR"
 
 if [[ ! -d "$PROJECT_ROOT/vendor/Instella-MoE/.git" ]]; then
   git clone --recurse-submodules "$INSTELLA_REPO" "$PROJECT_ROOT/vendor/Instella-MoE"
@@ -30,7 +32,12 @@ git -C "$PROJECT_ROOT/vendor/Instella-MoE" submodule update --init --recursive
 
 module load apptainer/1.4.5
 image="$DATA_ROOT/containers/$CONTAINER_NAME"
-[[ -f "$image" ]] || apptainer pull "$image" "$CONTAINER_URI"
+if [[ ! -f "$image" ]]; then
+  local_image="$SLURM_TMPDIR/$CONTAINER_NAME"
+  apptainer pull "$local_image" "$CONTAINER_URI"
+  cp "$local_image" "$image.partial"
+  mv "$image.partial" "$image"
+fi
 
 # Download (or resume) the selected public checkpoint. This does not need a GPU.
 model_name=${MODEL_ID//\//--}
