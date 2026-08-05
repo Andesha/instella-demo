@@ -34,6 +34,9 @@ def main() -> None:
         enable_dp_attention=True,
         dtype="bfloat16",
         cuda_graph_max_bs=1,
+        # Avoid first-run graph capture and AITER JIT dependencies; this is a
+        # functional portability test rather than a throughput benchmark.
+        disable_cuda_graph=True,
         disable_shared_experts_fusion=True,
         disable_radix_cache=True,
         attention_backend="triton",

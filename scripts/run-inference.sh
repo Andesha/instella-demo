@@ -25,7 +25,9 @@ apptainer overlay create --size 16384 "$overlay"
 # These are AMD's documented Instella SGLang settings. The writable temporary
 # layer lets the pinned AMD overlay patch /app/sglang without changing the SIF.
 export SGLANG_ROCM_FUSED_DECODE_MLA=0
-export SGLANG_USE_AITER=1
+# The image's AITER MoE JIT module builds but cannot be imported on Nibi's
+# MI300A stack. Use SGLang's Triton fallback for this portability smoke test.
+export SGLANG_USE_AITER=0
 export GPU_MAX_HW_QUEUES=8
 export MODE=FARSKIP_REFERENCE
 export FARSKIP_REFERENCE_DECODER_LAYER=1
