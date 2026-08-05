@@ -42,6 +42,8 @@ done
 apptainer exec --rocm \
   --bind "$PROJECT_ROOT:/workspace,$DATA_ROOT:/demo-data" \
   --env HF_HOME=/demo-data/huggingface \
+  --env SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+  --env CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
   --env EXP="/demo-data/run-configs/mock-${SLURM_JOB_ID}.yaml" \
   --env TRAIN_LOG="/demo-data/outputs/mock-train-${SLURM_JOB_ID}.log" \
   "$image" bash -lc \

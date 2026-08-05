@@ -69,8 +69,12 @@ fi
 
 # Download (or resume) the selected public checkpoint. This does not need a GPU.
 model_name=${MODEL_ID//\//--}
-apptainer exec --bind "$DATA_ROOT:/demo-data" "$image" \
-  huggingface-cli download "$MODEL_ID" \
+# Nibi exports a host CA path that does not exist inside this Ubuntu image.
+# Point HTTPS clients at the certificate bundle shipped in the container.
+apptainer exec --bind "$DATA_ROOT:/demo-data" \
+  --env SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+  --env CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+  "$image" hf download "$MODEL_ID" \
   --local-dir "/demo-data/models/$model_name" \
   --cache-dir /demo-data/huggingface
 ln -sfn "$model_name" "$DATA_ROOT/models/current"
