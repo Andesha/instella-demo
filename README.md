@@ -30,7 +30,7 @@ By default, persistent artifacts stay inside the scratch checkout: the SIF under
 
 Container conversion runs inside a Slurm allocation. Apptainer's cache, extracted root filesystem, and initial SIF are built under fast node-local `$SLURM_TMPDIR`; only the completed SIF is copied to scratch. For an attended run instead of a batch job, use `bash scripts/bootstrap-interactive.sh [--reservation NAME] [--account ACCOUNT]`. Bootstrap and demo submission default to the `cc-debug` account; pass `--account ACCOUNT` to either wrapper to override it.
 
-The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` passes the checkout path to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script also verifies that Slurm exposed all four GPUs, replacing the need for a separate preflight job. Use `--data-root PATH` only if generated artifacts should live outside the checkout.
+The demo checkpoint is intentionally hard-coded: change `MODEL_ID` near the top of `scripts/bootstrap.sh` to use another released checkpoint, then rerun bootstrap. `submit.sh` passes the checkout path to Slurm and submits inference followed by mock training as an `afterok` dependency chain. The inference script verifies its allocated MI300A GPU, replacing the need for a separate preflight job. Use `--data-root PATH` only if generated artifacts should live outside the checkout.
 
 Monitor the workflow with:
 
@@ -39,11 +39,11 @@ squeue -u "$USER"
 tail -f instella-*.out
 ```
 
-Successful evidence is generated text from a process that detected four ROCm devices, followed by loss and checkpoint output from mock training. Slurm writes scheduler output in the directory where `submit.sh` is invoked; the training application also writes its detailed log and checkpoints under `$DATA_ROOT/outputs`.
+Successful evidence is generated text on one MI300A, followed by loss and checkpoint output from four-GPU mock training. Slurm writes scheduler output in the directory where `submit.sh` is invoked; the training application also writes its detailed log and checkpoints under `$DATA_ROOT/outputs`.
 
 ## Nibi and MI300A notes
 
-The jobs request Nibi's `gpu:mi300a` resources without forcing a partition, allowing Slurm or the selected reservation to route them correctly. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. Both inference and training request all four GPUs and 450 GB.
+The jobs request Nibi's `gpu:mi300a` resources without forcing a partition, allowing Slurm or the selected reservation to route them correctly. A full MI300A node has four GPU GRES, 96 CPU cores, and approximately 507 GB of unified CPU/GPU memory. Inference keeps the model on one MI300A and requests 120 GB; mock training requests all four GPUs and 450 GB.
 
 Nibi provides Apptainer. The bootstrap script converts AMD's documented `rocm/megatron-lm:v25.8_py310` image into a SIF, and jobs use `apptainer exec --rocm` to expose allocated AMD devices. Durable models and checkpoints are stored under `$DATA_ROOT`; do not place them in `$SLURM_TMPDIR`, which disappears after a job.
 
@@ -63,7 +63,7 @@ MI300A is an APU with unified memory, while AMD's original large-scale run used 
 - [`configs/mock-train.patch`](configs/mock-train.patch) — bounded changes applied to the upstream recipe
 - [`slurm/`](slurm/) — independently runnable Slurm jobs
 
-Each `.sbatch` file may also be submitted directly from the repository root after bootstrap. `inference.sbatch` fails early unless Slurm exposes all four GPUs, so no separate preflight allocation is needed. Neither job hard-codes a reservation or node name.
+Each `.sbatch` file may also be submitted directly from the repository root after bootstrap. `inference.sbatch` fails early unless Slurm exposes its requested GPU, so no separate preflight allocation is needed. Neither job hard-codes a reservation or node name.
 
 ## Scope and cautions
 
