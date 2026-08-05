@@ -33,8 +33,36 @@ git -C "$PROJECT_ROOT/vendor/Instella-MoE" submodule update --init --recursive
 module load apptainer/1.4.5
 image="$DATA_ROOT/containers/$CONTAINER_NAME"
 if [[ ! -f "$image" ]]; then
+  # Fail quickly with a useful message instead of letting an OCI pull appear to
+  # hang when the compute node cannot reach Docker Hub's registry/auth service.
+  python3 - <<'PY'
+import json
+import urllib.request
+
+url = (
+    "https://auth.docker.io/token?service=registry.docker.io"
+    "&scope=repository:rocm/megatron-lm:pull"
+)
+try:
+    with urllib.request.urlopen(url, timeout=20) as response:
+        if not json.load(response).get("token"):
+            raise RuntimeError("Docker Hub returned no registry token")
+except Exception as error:
+    raise SystemExit(f"Docker Hub network check failed: {error}")
+print("Docker Hub network check passed")
+PY
+
   local_image="$SLURM_TMPDIR/$CONTAINER_NAME"
-  apptainer pull "$local_image" "$CONTAINER_URI"
+  # Preserve the node-local layer cache across a few transient registry errors.
+  for attempt in 1 2 3; do
+    rm -f "$local_image"
+    if apptainer pull "$local_image" "$CONTAINER_URI"; then
+      break
+    fi
+    ((attempt < 3)) || { echo "OCI pull failed after 3 attempts" >&2; exit 1; }
+    echo "OCI pull failed (attempt $attempt/3); retrying in 30 seconds" >&2
+    sleep 30
+  done
   cp "$local_image" "$image.partial"
   mv "$image.partial" "$image"
 fi
